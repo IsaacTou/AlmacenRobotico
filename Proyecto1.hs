@@ -1,7 +1,6 @@
 type Coord = (Int, Int) -- (Fila, Columna)
 data Move = U | D | L | R deriving (Show, Eq)
 type State = (Coord, Coord, [Coord]) -- (Robot, CajaObjetivo, CajasDeBloqueo)  
-data Arbol = Nodo (State,Int,[State]) [Arbol] deriving (Show, Eq)
 
 estaFuera :: Coord -> Bool
 estaFuera (x,y) | x < 0 || y < 0 = True
@@ -65,16 +64,35 @@ applyMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento
                 cajasBloqModificado = filter(/= (rx,ry)) cajasbloq
                 nuevaCajasBloq = siguienteCoord (rx,ry) mov:cajasBloqModificado
 
-solveWarehouse :: State -> (Int, [State])
-solveWarehouse estado = bfs [(State,0,[State])] [(State,0,[State])] [(State,0,[State])]
+
+agregarNodos :: (State, Int, [State]) -> [(State, Int, [State])]
+agregarNodos (st, nivel, camino) = 
+    intentar U ++ intentar D ++ intentar L ++ intentar R
     where
-        bfs :: [(State,Int,[State])] -> [(State,Int,[State])] -> [(State,Int,[State])] -> (Int, [State])
-        bfs _ _ [] = (0, [])
-        bfs _ _ (x:xs) = 
+    intentar :: Move -> [(State, Int, [State])]
+    intentar mov
+        | isValidMove st mov = 
+            let nuevoSt = applyMove st mov
+            in [(nuevoSt, nivel + 1, nuevoSt : camino)] 
+        | otherwise = []    
 
 
+esEstadoFinal :: State -> Bool
+esEstadoFinal (robotCoord, (cx,cy), cajasbloq)
+    | cx == 5 && cy == 5 = True 
+    | otherwise = False
 
 
--- Lista de Visitados
--- Lista de Arbol
--- Cola de faltantes por visitar
+solveWarehouse :: State -> (Int, [State])
+solveWarehouse estadoInicial = bfs [] [(estadoInicial, 0, [estadoInicial])]
+    where
+        bfs :: [State] -> [(State, Int, [State])] -> (Int, [State])
+        bfs _ [] = (0, []) 
+        bfs visitados ((st, nivel, camino) : colaRestante)
+            | esEstadoFinal st = (nivel, reverse camino) 
+            | st `elem` visitados = bfs visitados colaRestante
+            | otherwise = 
+            let nuevosHijos = agregarNodos (st, nivel, camino)
+                nuevaCola = colaRestante ++ nuevosHijos 
+                nuevosVisitados = st : visitados        
+            in bfs nuevosVisitados nuevaCola
