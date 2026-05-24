@@ -65,16 +65,3 @@ applyMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento
                 cajasBloqModificado = filter(/= (rx,ry)) cajasbloq
                 nuevaCajasBloq = siguienteCoord (rx,ry) mov:cajasBloqModificado
 
-solveWarehouse :: State -> (Int, [State])
-solveWarehouse estado = bfs [(State,0,[State])] [(State,0,[State])] [(State,0,[State])]
-    where
-        bfs :: [(State,Int,[State])] -> [(State,Int,[State])] -> [(State,Int,[State])] -> (Int, [State])
-        bfs _ _ [] = (0, [])
-        bfs _ _ (x:xs) = 
-
-
-
-
--- Lista de Visitados
--- Lista de Arbol
--- Cola de faltantes por visitar
