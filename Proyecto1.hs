@@ -1,7 +1,7 @@
 type Coord = (Int, Int) -- (Fila, Columna)
 data Move = U | D | L | R deriving (Show, Eq)
-type State = (Coord, Coord, [Coord]) -- (Robot, CajaObjetivo, CajasDeBloqueo)
-
+type State = (Coord, Coord, [Coord]) -- (Robot, CajaObjetivo, CajasDeBloqueo)  
+data Arbol = Nodo (State,Int,[State]) [Arbol] deriving (Show, Eq)
 
 estaFuera :: Coord -> Bool
 estaFuera (x,y) | x < 0 || y < 0 = True
@@ -10,11 +10,11 @@ estaFuera (x,y) | x < 0 || y < 0 = True
 
 
 initialState :: Coord -> Coord -> [Coord] -> State
-initialState robot objetivo obstaculos
-    | robot == objetivo || estaFuera robot || estaFuera objetivo = ((-1,-1), (-1,-1), [])
-    | robot `elem` obstaculos || objetivo `elem` obstaculos = ((-1,-1), (-1,-1), [])
-    | invalidos obstaculos  = ((-1,-1), (-1,-1), [])
-    | otherwise  = (robot, objetivo, obstaculos)
+initialState robot cajaObjetivo cajasDeBloqueo
+    | robot == cajaObjetivo || estaFuera robot || estaFuera cajaObjetivo = ((-1,-1), (-1,-1), [])
+    | robot `elem` cajasDeBloqueo || cajaObjetivo `elem` cajasDeBloqueo = ((-1,-1), (-1,-1), [])
+    | invalidos cajasDeBloqueo  = ((-1,-1), (-1,-1), [])
+    | otherwise  = (robot, cajaObjetivo, cajasDeBloqueo)
     where 
     invalidos :: [Coord] -> Bool
     invalidos [] = False
@@ -23,3 +23,58 @@ initialState robot objetivo obstaculos
         | estaFuera x = True
         | otherwise = invalidos xs       
 
+
+siguienteCoord :: Coord -> Move -> Coord
+siguienteCoord (x,y) U = (x-1, y) 
+siguienteCoord (x,y) D = (x+1, y) 
+siguienteCoord (x,y) L = (x, y-1) 
+siguienteCoord (x,y) R = (x, y+1)
+
+
+isValidMove :: State -> Move -> Bool
+isValidMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento =
+    esValido (siguienteCoord (x,y) movimiento) cajaObjetivo cajasDeBloqueo movimiento
+    where
+        esValido :: Coord -> Coord -> [Coord] -> Move -> Bool
+        esValido (nx,ny) obj bloq mov  
+
+            | estaFuera (nx,ny) = False
+            | (nx,ny) == obj = empujeValido (siguienteCoord (nx,ny) mov) obj bloq 
+            | (nx,ny) `elem` bloq = empujeValido (siguienteCoord (nx,ny) mov) obj bloq
+            | otherwise = True
+
+        empujeValido :: Coord -> Coord -> [Coord] -> Bool 
+        empujeValido (cx,cy) obj bloq
+            | estaFuera (cx,cy) = False
+            | (cx,cy) `elem` bloq = False
+            | (cx,cy) == obj = False
+            | otherwise = True
+
+
+applyMove :: State -> Move -> State
+applyMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento
+    | nuevaPos `elem` cajasDeBloqueo = modificarPosicion nuevaPos cajaObjetivo cajasDeBloqueo movimiento
+    | nuevaPos == cajaObjetivo = (nuevaPos, siguienteCoord nuevaPos movimiento, cajasDeBloqueo)
+    | otherwise = (nuevaPos, cajaObjetivo, cajasDeBloqueo)
+    where 
+        nuevaPos = siguienteCoord(x,y) movimiento
+
+        modificarPosicion :: Coord -> Coord -> [Coord] -> Move -> State
+        modificarPosicion (rx,ry) cajaobj cajasbloq mov = ((rx,ry),cajaobj,nuevaCajasBloq)
+            where
+                cajasBloqModificado = filter(/= (rx,ry)) cajasbloq
+                nuevaCajasBloq = siguienteCoord (rx,ry) mov:cajasBloqModificado
+
+solveWarehouse :: State -> (Int, [State])
+solveWarehouse estado = bfs [(State,0,[State])] [(State,0,[State])] [(State,0,[State])]
+    where
+        bfs :: [(State,Int,[State])] -> [(State,Int,[State])] -> [(State,Int,[State])] -> (Int, [State])
+        bfs _ _ [] = (0, [])
+        bfs _ _ (x:xs) = 
+
+
+
+
+-- Lista de Visitados
+-- Lista de Arbol
+-- Cola de faltantes por visitar
