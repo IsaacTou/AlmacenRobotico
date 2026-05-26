@@ -1,98 +1,111 @@
 type Coord = (Int, Int) -- (Fila, Columna)
 data Move = U | D | L | R deriving (Show, Eq)
 type State = (Coord, Coord, [Coord]) -- (Robot, CajaObjetivo, CajasDeBloqueo)  
---Parte 1
-estaFuera :: Coord -> Bool-- funcion para saber si una coordenada se salio del tablero
+
+-- Parte 1
+
+-- funcion para saber si una coordenada se salio del tablero
+estaFuera :: Coord -> Bool
 estaFuera (x,y) | x < 0 || y < 0 = True
                 | x > 5 || y > 5 = True
                 | otherwise = False
 
 
 initialState :: Coord -> Coord -> [Coord] -> State
-initialState robot targetBox lockBoxes
-    | robot == targetBox || isOut robot || isOut targetBox = ((-1,-1), (-1,-1), [])
-    | robot `elem` lockBoxes || targetBox `elem` lockBoxes = ((-1,-1), (-1,-1), [])
-    | invalidCoords lockBoxes  = ((-1,-1), (-1,-1), [])
-    | otherwise  = (robot, targetBox, lockBoxes)
+initialState robot cajaObjetivo cajasDeBloqueo
+    | robot == cajaObjetivo || estaFuera robot || estaFuera cajaObjetivo = ((-1,-1), (-1,-1), [])
+    | robot `elem` cajasDeBloqueo || cajaObjetivo `elem` cajasDeBloqueo = ((-1,-1), (-1,-1), [])
+    | invalidos cajasDeBloqueo  = ((-1,-1), (-1,-1), [])
+    | otherwise  = (robot, cajaObjetivo, cajasDeBloqueo)
     where 
-    invalidCoords :: [Coord] -> Bool
-    invalidCoords [] = False
-    invalidCoords (x:xs) 
+    invalidos :: [Coord] -> Bool
+    invalidos [] = False
+    invalidos (x:xs) 
         | x `elem` xs = True
-        | isOut x = True
-        | otherwise = invalidCoords xs       
+        | estaFuera x = True
+        | otherwise = invalidos xs       
 
 
-siguienteCoord :: Coord -> Move -> Coord--funcion para obtener la siguiente coordenada dependiendodel movimiento que se quiere realizar
+-- funcion para obtener la siguiente coordenada dependiendo del movimiento que se quiere realizar
+siguienteCoord :: Coord -> Move -> Coord
 siguienteCoord (x,y) U = (x-1, y) 
 siguienteCoord (x,y) D = (x+1, y) 
 siguienteCoord (x,y) L = (x, y-1) 
 siguienteCoord (x,y) R = (x, y+1)
---Parte 2
+
+-- Parte 2
 
 isValidMove :: State -> Move -> Bool
-isValidMove ((x,y),targetBox,lockBoxes) movement =
-    isValid (nextCoord (x,y) movement) targetBox lockBoxes movement
+isValidMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento =
+    esValido (siguienteCoord (x,y) movimiento) cajaObjetivo cajasDeBloqueo movimiento
     where
-        esValido :: Coord -> Coord -> [Coord] -> Move -> Bool-- funcion donde validamos si el movimiento es valido o no
+        -- funcion donde validamos si el movimiento es valido o no
+        esValido :: Coord -> Coord -> [Coord] -> Move -> Bool
         esValido (nx,ny) obj bloq mov  
 
-            | isOut (nx,ny) = False
-            | (nx,ny) == obj = validPush (nextCoord (nx,ny) mov) obj bloq 
-            | (nx,ny) `elem` bloq = validPush (nextCoord (nx,ny) mov) obj bloq
+            | estaFuera (nx,ny) = False
+            | (nx,ny) == obj = empujeValido (siguienteCoord (nx,ny) mov) obj bloq 
+            | (nx,ny) `elem` bloq = empujeValido (siguienteCoord (nx,ny) mov) obj bloq
             | otherwise = True
 
-        empujeValido :: Coord -> Coord -> [Coord] -> Bool --funcion donde evaluamos si el empuje se puede realizar o no 
+        -- funcion donde evaluamos si el empuje se puede realizar o no 
+        empujeValido :: Coord -> Coord -> [Coord] -> Bool 
         empujeValido (cx,cy) obj bloq
             | estaFuera (cx,cy) = False
             | (cx,cy) `elem` bloq = False
             | (cx,cy) == obj = False
             | otherwise = True
 
---Parte 3
+-- Parte 3
+
 applyMove :: State -> Move -> State
-applyMove ((x,y),targetBox,lockBoxes) movement
-    | newPosition `elem` lockBoxes = changePosition newPosition targetBox lockBoxes movement
-    | newPosition == targetBox = (newPosition, nextCoord newPosition movement, lockBoxes)
-    | otherwise = (newPosition, targetBox, lockBoxes)
+applyMove ((x,y),cajaObjetivo,cajasDeBloqueo) movimiento
+    | nuevaPos `elem` cajasDeBloqueo = modificarPosicion nuevaPos cajaObjetivo cajasDeBloqueo movimiento
+    | nuevaPos == cajaObjetivo = (nuevaPos, siguienteCoord nuevaPos movimiento, cajasDeBloqueo)
+    | otherwise = (nuevaPos, cajaObjetivo, cajasDeBloqueo)
     where 
-        newPosition = nextCoord(x,y) movement
+        nuevaPos = siguienteCoord(x,y) movimiento
 
-        changePosition :: Coord -> Coord -> [Coord] -> Move -> State
-        changePosition (rx,ry) objBox lockBoxes mov = ((rx,ry),objBox,newLockBoxes)
+        -- utilizamos filter para eliminar la caja de bloqueo que se va a mover y luego agregamos la nueva posicion de dicha caja ya movida
+        modificarPosicion :: Coord -> Coord -> [Coord] -> Move -> State
+        modificarPosicion (rx,ry) cajaobj cajasbloq mov = ((rx,ry),cajaobj,nuevaCajasBloq)
             where
-                cajasBloqModificado = filter(/= (rx,ry)) cajasbloq --utlilizamos filter para eliminar la caja de bloqueo que se va a mover y luego agregamos la nueva posiscion de dicha caja ya movida
-                nuevaCajasBloq = siguienteCoord (rx,ry) mov:cajasBloqModificado
+                cajasBloqModificado = filter(/= (rx,ry)) cajasbloq
+                nuevaCajasBloq = siguienteCoord (rx,ry) mov : cajasBloqModificado
 
---Parte 4
+-- Parte 4
+
 agregarNodos :: (State, Int, [State]) -> [(State, Int, [State])]
 agregarNodos (st, nivel, camino) = 
     intentar U ++ intentar D ++ intentar L ++ intentar R
     where
-    tryMov :: Move -> [(State, Int, [State])]
-    tryMov mov
+    intentar :: Move -> [(State, Int, [State])]
+    intentar mov
         | isValidMove st mov = 
-            let nuevoSt = applyMove st mov--hacemos uso del let e in para hacer uso de variable temporal que nos permite guardar el estado nuevo 
+            -- hacemos uso del let e in para hacer uso de variable temporal que nos permite guardar el estado nuevo 
+            let nuevoSt = applyMove st mov
             in [(nuevoSt, nivel + 1, nuevoSt : camino)] 
         | otherwise = []    
 
 
-esEstadoFinal :: State -> Bool--vemos si llego a la meta o no
+-- vemos si llego a la meta o no
+esEstadoFinal :: State -> Bool
 esEstadoFinal (robotCoord, (cx,cy), cajasbloq)
     | cx == 5 && cy == 5 = True 
     | otherwise = False
 
 
 solveWarehouse :: State -> (Int, [State])
-solveWarehouse initialState = bfs [] [(initialState, 0, [initialState])]
+solveWarehouse estadoInicial = bfs [] [(estadoInicial, 0, [estadoInicial])]
     where
         bfs :: [State] -> [(State, Int, [State])] -> (Int, [State])
         bfs _ [] = (0, []) 
-        bfs visited ((st, level, road) : residuaryTail)
-            | isFinalState st = (level, reverse road) 
-            | st `elem` visited = bfs visited residuaryTail
+        bfs visitados ((st, nivel, camino) : colaRestante)
+            | esEstadoFinal st = (nivel, reverse camino) 
+            | st `elem` visitados = bfs visitados colaRestante
             | otherwise = 
-            let nuevosHijos = agregarNodos (st, nivel, camino)--usamos let e in de neuvo para agg los hijos a la cola
+            -- usamos let e in de nuevo para agg los hijos a la cola del BFS
+            let nuevosHijos = agregarNodos (st, nivel, camino)
                 nuevaCola = colaRestante ++ nuevosHijos 
                 nuevosVisitados = st : visitados        
             in bfs nuevosVisitados nuevaCola
