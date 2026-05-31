@@ -25,3 +25,9 @@ la cláusula `deriving` le permite a Haskell generar de forma automática el com
 
 - ** `Eq` (Equality):** Se utiliza para los tipos de datos cuyos valores pueden ser comparados por igualdad. Al colocarla, el compilador nos proporciona los operadores `(==)` y `(/=)`. En nuestro proyecto es vital, ya que al aplicarla en nuestro tipo `Move`, permite que funciones como `elem` puedan comparar los estados del robot y sus movimientos de forma directa.
 - ** `Show`:** Se utiliza para los tipos de datos cuyos valores necesitamos convertir en una cadena de caracteres (`String`). En nuestro código la añadimos al tipo `Move` para poder transformar los constructores `U`, `D`, `L`, `R` en texto real y así mostrar el camino de la solución en pantalla.
+
+## Referencias Bibliográficas y Material Consultado
+Para la búsqueda de información sobre las herramientas que utilizamos y cómo implementarlas, hicimos uso tanto del libro como de la guía compartida por el profesor:
+
+1. **Lipovača, M. *Learn You a Haskell for Great Good!*** Disponible en línea en: [https://learnyouahaskell.github.io/](https://learnyouahaskell.github.io/)
+2. **Salas, J. *Programación Funcional con Haskell***
